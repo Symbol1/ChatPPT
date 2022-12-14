@@ -1,0 +1,541 @@
+% !TEX encoding = UTF-8 Unicode
+% !TEX program = pdflatex
+
+\makeatletter
+
+\documentclass[aspectratio=169, t]{beamer}
+	% colors
+	\setbeamercolor{normal text}{bg=white!95!black, fg=black}
+	\setbeamercolor{alerted text}{fg=red!50!yellow!50!black}
+	\setbeamercolor{example text}{fg=green!50!cyan!50!black}
+	\setbeamercolor{structure}{fg=blue!50!magenta!50!black, bg=white}
+	\setbeamerfont{frametitle}{size=\normalsize}
+	% layouts
+	\setbeamersize{text margin left=20mm, text margin right=0mm}
+	\defbeamertemplate*{frametitle}{ChatPPT}{%
+		\ifbeamercolorempty[bg]{frametitle}{}{\nointerlineskip}%
+		\@tempdima=\textwidth%
+		\advance\@tempdima by\beamer@leftmargin%
+		\advance\@tempdima by\beamer@rightmargin%
+		\begin{beamercolorbox}[sep=5mm,wd=\the\@tempdima]{frametitle}%
+			\leftskip20mm%
+			\smash{\raisebox{-3mm}{\hskip-15mm\includegraphics%
+				[width=10mm,height=10mm]{human.jpg}\hskip5mm}}%
+			\strut\insertframetitle\strut\par%
+			\vskip-\baselineskip
+			\smash{\raisebox{-20mm}{\hskip-15mm\includegraphics%
+				[width=10mm,height=10mm]{machine.jpg}\hskip5mm}}%
+		\end{beamercolorbox}%
+	}
+	\define@key{beamerframe}{t}[true]{
+		\beamer@frametopskip=5mm\relax%
+		\beamer@framebottomskip=0pt plus1fil\relax%
+		\beamer@frametopskipautobreak=\beamer@frametopskip\relax%
+		\beamer@framebottomskipautobreak=\beamer@framebottomskip\relax%
+		\parskip=10mm minus5mm\relax
+	}
+	\def\@listI{\leftmargin5mm
+				\topsep 0pt
+				\parsep 0pt
+				\itemsep\parskip}
+	\setbeamertemplate{navigation symbols}{
+		\insertframenumber/\inserttotalframenumber
+	}
+
+\usepackage{mathtools}
+	\DeclareMathOperator\Tr{Tr}
+	\def\block#1#2{_{#1#2}}
+	\def\series#1{^{(#1)}}
+	\def\A{A\block}
+	\def\B{B\block}
+	\def\C{C\block}
+	\def\S{S\series}
+	\def\bma#1{\begin{bmatrix}#1\end{bmatrix}}
+
+\usepackage{tikz}
+
+\title{Fast Matrix Multiplication That Does Not Slow Down}
+
+\author{Hsin-Po Wang}
+
+\institute{University of California, Berkeley}
+
+\date{2022-12-12}
+
+\begin{document}
+
+\makeatletter
+
+\begin{frame}
+	\frametitle{Your name is Hsin-Po Wang; propose a cool tech talk title}
+
+	Here is a possible topic for a cool, technical talk.
+
+	Title: Fast Matrix Multiplication That Does Not Slow Down
+
+	Speaker: Hsin-Po Wang
+
+	Date: (insert talk date)
+\end{frame}
+
+\begin{frame}
+	\frametitle{Why do you pick matrix multiplication?  Use itemize}
+
+	\begin{itemize}
+		\item Matrix multiplication is widely used in science and engineering.
+
+		\item Special cases of matrix multiplication
+			include rotation and markov chain.
+
+		\item The converse of matrix multiplication
+			is called matrix decomposition, also widely used
+			as it is a central part of solving linear equations.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{What is fast about matrix multi?  Use itemize}
+
+	\begin{itemize}
+		\item Fast matrix multiplication is faster than
+			computing the product using the schoolbook formula.
+		\item The complexity of fast matrix multiplication is $n^{2.4}$.
+
+		\item It is used when the matrices are large.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Give me an example of fast matrix multi}
+
+	An example of fast matrix multi is the Strassen algorithm.
+	The Strassen algorithm is known for multiplying 2 2 by 2
+	matrices using only 7 multiplications.
+
+	\pause
+
+	The formula for Strassen algorithm is
+	\def\={\coloneqq}
+	\def\*{\bigstar}
+	\begin{alignat*}{2}
+        \S1    \= &&    (\A11 + \A22)  & \*   (\B11 + \B22),  \\
+        \S2    \= &&    (\A21 + \A22)  & \*        \B11    ,  \\
+        \S3    \= &&         \A11      & \*   (\B12 - \B22),  \\
+        \S4    \= &&         \A22      & \*  (-\B11 + \B21),  \\
+        \S5    \= &&    (\A11 + \A12)  & \*        \B22    ,  \\
+        \S6    \= &&   (-\A11 + \A21)  & \*   (\B11 + \B12),  \\
+        \S7    \=&\;&   (\A12 - \A22)  & \*   (\B21 + \B22).    
+	\end{alignat*}
+\end{frame}
+
+\begin{frame}
+	\vskip-10mm
+	\def\={\coloneqq}
+	\def\*{\bigstar}
+	\begin{alignat*}{2}
+        \S1    \= &&    (\A11 + \A22)  & \*   (\B11 + \B22),  \\
+        \S2    \= &&    (\A21 + \A22)  & \*        \B11    ,  \\
+        \S3    \= &&         \A11      & \*   (\B12 - \B22),  \\
+        \S4    \= &&         \A22      & \*  (-\B11 + \B21),  \\
+        \S5    \= &&    (\A11 + \A12)  & \*        \B22    ,  \\
+        \S6    \= &&   (-\A11 + \A21)  & \*   (\B11 + \B12),  \\
+        \S7    \=&\;&   (\A12 - \A22)  & \*   (\B21 + \B22).    
+	\end{alignat*}
+	\def~{\phantom{{}+\S0}}
+	\begin{align*}
+		\C11  & =  \S1    ~     ~  + \S4 - \S5    ~  + \S7,  \\
+		\C12  & =   ~     ~    \S3    ~  + \S5    ~     ~ ,  \\
+		\C21  & =   ~    \S2    ~  + \S4    ~     ~     ~ ,  \\
+		\C22  & =  \S1 - \S2 + \S3    ~     ~  + \S6    ~ ,    
+	\end{align*}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Can I use Strassen for large matrix?}
+
+	Yes, you can use Strassen algorithm for large matrix.
+
+	A large matrix can be divided into 2 by 2 blocks.
+	Applying Strassen algorithm to those blocks
+	will give you 7 ``block multiplications''.
+	For each block multiplication,
+	you can apply Strassen algorithm again
+	to generate more blocks.
+
+	\pause
+
+	The complexity of Strassen algorithm is $n^{\log_2 7}$
+	according to the master theorem with fan-out factor $7$
+	and size reduction factor $2$.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Is Strassen used in real systems?}
+
+	Yes, a variant of Strassen algorithm is implemented in BLAS
+	and shown to outperform the standard method at matrix size 1000 by 1000.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Then why do you say Strassen slow?}
+
+	Strassen algorithm is a fast matrix multiplication algorithm
+	that is claimed to be faster in certain parameter range.
+
+	However, the machines that carries the computation might slow down.
+	Since large matrices are divided into blocks and distributed
+	over a network of computers, any computer failure
+	will slow down the whole distributed matrix multiplication.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Introduce distributed matrix multi.  Use itemize}
+
+	\begin{itemize}
+		\item Distributed matrix multiplication is a parallel algorithm
+			 to compute the product of matrices using a network of computers.
+
+		\item Distributed matrix multiplication can be significantly faster
+			as it takes advantage on parallelism.
+
+		\item If the matrices is too large for a single computer,
+			distributed matrix multiplication might be necessary.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{How to avoid slow down}
+
+	Here is a list of previous works that avoids straggling.
+
+	Lee et al.\ '18 suggests using error correcting codes
+	to protect distributed matrix multiplication.
+
+	Suppose $A$ and $B$ is $k$ by $k$ matrices.
+	Suppose $G$ is an $[n, k]$-MDS code represented by an $n$ by $k$ matrix.
+	Lee et al.\ suggests
+	computing $(G A) \bigstar B$ because the rows are linearly dependent.
+
+	\pause
+
+	Bartan and Pilanci '19 suggests using polar code as $G$
+	because polar code is a capacity-achieving low-complexity code.
+
+	
+	\pause
+
+	Mallick et al.\ '20 suggests using LT code as $G$
+	because LT code is a rate-less code.
+\end{frame}
+
+\begin{frame}
+	Lee, Suh, and Ramchandran '17 suggests computing
+	$(G A) \bigstar (B G^\top)$, where $G$ is an MDS matrix.
+
+	\pause
+
+	Baharav et al.\ '18 suggests using
+	a tensor power of $[^1_1{}^1_0{}^0_1]$ as $G$.
+
+	\pause
+
+	Dutta et al.\ '20 suggests that the $i$th computer
+	computes the tensor product $(A c_i) \otimes (r_i B)$,
+	where $r_i$ are row vectors, $c_i$ are column vectors,
+	and any $2k-1$ $c_i r_i$ span the space of $k$ by $k$ Toeplitz matrices.
+
+	\pause
+
+	Yu, Maddah-Ali, and Avestimehr '20 suggests that
+	the $i$th computer computes the inner product $(r_i A) \cdot (B c_i)$,
+	where $r_i$ are row vectors, $c_i$ are column vectors,
+	and any $k^2$ $c_i r_i$ span the space of $k$ by $k$ matrices.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Why Yu's method work?}
+
+	Suppose $r_i$ are row vectors, $c_i$ are column vectors,
+	and any $k^2$ $c_i r_i$ span the space of $k$ by $k$ matrices.
+	Yu, Maddah-Ali, and Avestimehr '20 suggests that
+	the $i$th computer computes the inner product $(r_i A) \cdot (B c_i)$.
+
+	Yu, Maddah-Ali, and Avestimehr's idea is that
+	because $(r_i A) \cdot (B c_i)$ is a scalar,
+	a scalar is equal to its trace.
+	Therefore we can add $\Tr$ and use the cyclic property
+	\[
+		(r_i A) \cdot (B c_i)
+		= \Tr((r_i A) \cdot (B c_i))
+		= \Tr((c_i r_i) \bigstar (A B)).
+	\]
+	The $i$th computer is computing the inner produce of $A B$ and $c_i r_i$.
+	It remains to ensure that $c_i r_i$ span the space of matrices.
+\end{frame}
+
+\begin{frame}
+	\frametitle{What might be a way to make contribution to this subject?}
+
+	A possible way to make contribution to this subject is to combine
+	fast matrix multiplication with distributed matrix multiplication.
+
+	Fast matrix multiplication makes matrix multiplication fast;
+	distributed matrix multiplication makes matrix multiplication
+	distributed and resilient against failure.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Show me an example of combination}
+
+	The formula for Strassen algorithm is
+	\def\={\coloneqq}
+	\def\*{\bifstar}
+	\begin{alignat*}{2}
+        \S1    \= &&    (\A11 + \A22)  & \bigstar   (\B11 + \B22),  \\
+        \S2    \= &&    (\A21 + \A22)  & \bigstar        \B11    ,  \\
+        \S3    \= &&         \A11      & \bigstar   (\B12 - \B22),  \\
+        \S4    \= &&         \A22      & \bigstar  (-\B11 + \B21),  \\
+        \S5    \= &&    (\A11 + \A12)  & \bigstar        \B22    ,  \\
+        \S6    \= &&   (-\A11 + \A21)  & \bigstar   (\B11 + \B12),  \\
+        \S7    \=&\;&   (\A12 - \A22)  & \bigstar   (\B21 + \B22).  \\
+		\intertext{Strassen algorithm can be combined with}
+		\S8    \= &&   (\A11 + 2\A21)  & \bigstar  (-\B11 + \B12),  \\
+		\S9    \= &&   (\A12 + 2\A22)  & \bigstar  (-\B21 + \B22).    
+	\end{alignat*}
+\end{frame}
+\begin{frame}
+	They satisfy the following equations
+	\def~{\phantom{{}+\S0}}
+	\begin{align*}
+		\C11  & =  \S1    ~     ~  + \S4 - \S5    ~  + \S7,  \\
+		\C12  & =   ~     ~    \S3    ~  + \S5    ~     ~ ,  \\
+		\C21  & =   ~    \S2    ~  + \S4    ~     ~     ~ ,  \\
+		\C22  & =  \S1 - \S2 + \S3    ~     ~  + \S6    ~ ,    
+	\end{align*}
+	and a parity-check equation
+	\[ \S1 - 4\S2 + 3\S3 - 3\S4 + 2\S5 + 2\S6 - \S7 - \S8 - \S9 = 0. \]
+\end{frame}
+
+\begin{frame}
+	\frametitle{Prove the parity-check equation}
+
+	The parity-check equation
+	\[ \S1 - 4\S2 + 3\S3 - 3\S4 + 2\S5 + 2\S6 - \S7 - \S8 - \S9 = 0 \]
+	can be proved by utilizing the associativity of matrix multiplication
+	as illustrated by the following equations.
+	\begin{align*}
+		\kern1em&\kern-1em
+		\S8 + \S9 \\
+		& = \left( \bma{1 & 2}A \right) \bigstar
+			\left( B \bma{-1 \\ 1} \right) \\
+		& = \bma{1 & 2} C \bma{-1 \\ 1} \\
+		& = \bma{1 & 2}
+		\bma{
+			\S1 + \S4 - \S5 + \S7 & \S3 + \S5 \\
+			\S2 + \S4 & \S1 - \S2 + \S3 + \S6   
+		}
+		\bma{-1 \\ 1}
+	\end{align*}
+\end{frame}
+
+\begin{frame}
+	\frametitle{I want to call it "something" code. \\
+				What is a good word for "something"? \\
+				What is used to be nine but become eight?}
+
+	A category that used to contain 9 items
+	but is then reduced to 8 items is planets.
+	In 2008, Pluto is reclassified as dwarf planet,
+	leaving 8 planets behind.
+
+	Therefore, you can call it Pluto code.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Can you add more parity checks to Pluto code?}
+
+	Strassen algorithm can be combined with
+	\def\={\coloneqq}
+	\def\*{\bigstar}
+	\begin{alignat*}{2}
+		\S8    \= &&   (\A11 + 2\A21)  & \*  (-\B11 + \B12),  \\
+		\S9    \= &&   (\A12 + 2\A22)  & \*  (-\B21 + \B22),  \\
+		\S{10} \= &&   (3\A11 - \A21)  & \*  (\B11 + 2\B12),  \\
+		\S{11} \=&\;&  (3\A12 - \A22)  & \*  (\B21 + 2\B22).    
+	\end{alignat*}
+	They satisfy parity-check equations
+	\begin{align*}
+		\S1 - 4\S2 + 3\S3 - 3\S4 + 2\S5 + 2\S6 - \S7 - \S8 - \S9 & = 0, \\
+		\S1 + \S2 + 4\S3 + 2\S4 + 3\S5 - 2\S6 + 3\S7 - \S{10} - \S{11} & = 0.
+	\end{align*}
+\end{frame}
+
+\begin{frame}
+	\frametitle{One more check}
+
+	Strassen algorithm can be combined with
+	\def\={\coloneqq}
+	\def\*{\bigstar}
+	\begin{alignat*}{2}
+		\S8    \= &&   (\A11 + 2\A21)  & \*  (-\B11 + \B12),  \\
+		\S9    \= &&   (\A12 + 2\A22)  & \*  (-\B21 + \B22),  \\
+		\S{10} \= &&   (3\A11 - \A21)  & \*  (\B11 + 2\B12),  \\
+		\S{11} \=&\;&  (3\A12 - \A22)  & \*  (\B21 + 2\B22),  \\
+		\S{12} \= &&   (2\A11 - 3\A21) & \*  (2\B11 + \B12),  \\
+		\S{13} \=&\;&  (2\A12 - 3\A22) & \*  (2\B21 + \B22).    
+	\end{alignat*}
+	They satisfy parity-check equations
+	\begin{align*}
+		\S1 - 4\S2 + 3\S3 - 3\S4 + 2\S5 + 2\S6 - \S7 - \S8 - \S9 & = 0, \\
+		\S1 + \S2 + 4\S3 + 2\S4 + 3\S5 - 2\S6 + 3\S7 - \S{10} - \S{11} & = 0. \\
+		\S1 - 3\S2 - \S3 - 2\S4 - 2\S5 - 3\S6 + 4\S7 - \S{12} - \S{13} & = 0.  
+	\end{align*}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Turn the parity check in to matrix form}
+
+	The parity-check equations corresponds to the parity-check matrix
+	\[
+		\c@MaxMatrixCols=20
+		\bma{
+			1 & -4 &  3 & -3 &  2 &  2 & -1 & -1 & -1 &    &    &    &     \\
+			1 &  1 &  4 &  2 &  3 & -2 &  3 &    &    & -1 & -1 &    &     \\
+			1 & -3 & -1 & -2 & -2 & -3 &  4 &    &    &    &    & -1 & -1  \\
+		}
+	\]
+\end{frame}
+
+\begin{frame}
+	\frametitle{Mark the triples of columns that has rank 2}
+
+	Done
+	\[
+		\c@MaxMatrixCols=20
+		\bma{
+			1 & -4 &  3 & -3 &  2 &  2 & -1 & -1 & -1 &    &    &    &     \\
+			1 &  1 &  4 &  2 &  3 & -2 &  3 &    &    & -1 & -1 &    &     \\
+			1 & -3 & -1 & -2 & -2 & -3 &  4 &    &    &    &    & -1 & -1  \\
+			. &  . &    &  . &    &    &    &    &    &    &    &    & \\[-1mm]
+			. &    &  . &    &  . &    &    &    &    &    &    &    & \\[-1mm]
+			. &    &    &    &    &  . &  . &    &    &    &    &    & \\[-13mm]
+		}
+	\]
+\end{frame}
+
+\tikzset{
+	Tanner/.style={
+		cn/.style={rectangle, minimum size=5mm, draw},
+		vn/.style={circle, minimum size=10mm, inner sep=0, draw},
+		hn/.style={vn, fill=alerted text.fg},
+	}
+}
+
+\begin{frame}
+	\frametitle{Turn the parity-check matrix into Tanner graph}
+	
+	The parity-check matrix can be visualized as this Tanner graph
+	\tikz[Tanner]{
+		\draw
+			node [cn] (C) {iv}
+			foreach\s in{2,4,6,7}{
+				(\s*40+10 : 2) node (S\s) [vn] {$\S\s$} (C) -- (S\s)
+			}
+			(S4) +(190 : 4/3) node [vn] (S1) {$\S1$}
+			foreach \s in{3,5}{
+				(\s*40+10 : 2) node [hn] (H\s) {} (C) -- (H\s)
+				(H\s) +(\s*10+150 : 2) node [cn] (C\s) {} (S1) -- (C\s) -- (H\s)
+				(C\s) +(\s*10+150 : 2) node [vn] (S\s) {$\S\s$} (C\s) -- (S\s)
+			}
+			foreach \s in {8,10,12}{
+				(\s*20+170 : 2) node [hn] (H\s) {} (C) -- (H\s)
+				(H\s) +(\s*5-60 : 2) node [cn] (C\s) {} (H\s) -- (C\s)
+				(C\s) +(\s*20-225 : 2) node [vn] (S\s) {$\S\s$} (C\s) -- (S\s)
+				(C\s) +(\s*20-175 : 2) node [vn] (S\s)
+					{$\S{\the\numexpr\s+1}$} (C\s) --(S\s)
+			}
+		;
+	}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Does Pluto applicable to large matrix?}
+
+	Yes, since Pluto code is a parity-check code,
+	and since parity-check code can be amplified using tensor product,
+	Pluto code is applicable to large matrix.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Output a 7 by 7 array of dots}
+
+	Here is a 7 by 7 array of dots:
+	
+	\def~{\kern6pt}
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ . \\
+	. ~ . ~ . ~ . ~ . ~ . ~ .   
+\end{frame}
+
+\begin{frame}
+	\frametitle{Output a 9 by 9 array of x's \\
+				The upper left 7 by 7 dots are colored black \\
+				The upper right 7 by 2 dots are colored red \\
+				The bottom left 2 by 7 dots are colored blue \\
+				The bottom right 2 by 2 dots are colored cyan}
+
+	Here is a 9 by 9 array of x's colored as described: \\
+	\def~{\kern6pt}
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{black} x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{red}  x ~ x \\
+	\color{blue}  x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{cyan} x ~ x \\
+	\color{blue}  x ~ x ~ x ~ x ~ x ~ x ~ x ~ \color{cyan} x ~ x \\
+\end{frame}
+
+\begin{frame}
+	\frametitle{Since every axis is like a $[9, 8]$-MDS code, \\
+				every dimension will square the erasure probability, right? \\
+				What is the error exponent of tensored Pluto code?}
+
+	Yes, since the weight enumerator of a $[9, 8]$-MDS code
+	is divisible by $x^2$, asymptotically if $x$ is small enough
+	the block error probability can be estimated by $x^2$.
+
+	\pause
+
+	The error exponent is the number $E$ such that
+	the block error probability can be estimated by $x^{n^E}$,
+	where $n$ is the block length.
+	Since every dimension squares the error probability
+	and since there are $\log_2 n$ dimensions.
+	The number of error probability getting squared is $\log_2 n$.
+	Hence the block error probability can be estimated by
+	$x^{2^{\log_2 n}} = x^n$.
+	Equating $n^E = n$, we can infer that $E = 1$.
+\end{frame}
+
+\begin{frame}
+	\frametitle{What should I say when I want to end my talk?}
+
+	At the end of your presentation, you can say
+	\begin{itemize}
+		\item "Thank you for listening."
+		\item "I hope this has been helpful/informative/interesting."
+		\item "I appreciate your attention."
+		\item "Any questions?"
+	\end{itemize}
+\end{frame}
+
+\PackageWarning{thinbold}{\the\c@page}
+
+\end{document}
+
